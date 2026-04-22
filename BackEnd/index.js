@@ -1,8 +1,9 @@
 const express = require('express');
 const app= express();
+const {hashPassword,comparePassword} =require('./util/hashPassword');
 const cors=require('cors');
 const dbConnection=require('./connect');
-const User=require('./schema');
+const {User, Event}=require('./schema');
 require('dotenv').config();
 app.use(cors({origin:'http://localhost:3000'}));
 
@@ -23,11 +24,13 @@ app.post('/register',async (req,res)=>{
                 message:'Email already exists'
             });
         }
+
+    const hashedPassword=await hashPassword(Password);
     const user=new User({
         FirstName,
         LastName,
         Email,
-        Password
+        Password: hashedPassword
     });
 
         user.save().then(()=>{
@@ -50,7 +53,8 @@ app.post('/login',async(req,res)=>{
             message:'Invalid email or password'
         });
     }
-    if(user.Password!==Password){
+    const isMatch=await comparePassword(Password,user.Password);
+    if(!isMatch){
         return res.status(400).json({
             ok:false,
             message:'Invalid email or password'
@@ -64,6 +68,8 @@ app.post('/login',async(req,res)=>{
 
     
 });
+
+
     
 dbConnection();
 app.listen(process.env.PORT,()=>{
